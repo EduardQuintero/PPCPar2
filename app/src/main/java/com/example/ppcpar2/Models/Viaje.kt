@@ -2,7 +2,7 @@ package com.example.ppcpar2.Models
 
 import java.time.LocalDate
 
-data class viaje(
+data class Viaje(
     val id: Int = 0,
     val nombre: String,
     val destino: String,

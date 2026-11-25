@@ -1,4 +1,4 @@
-package com.example.ppcpar2
+package com.example.ppcpar2.Views
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
