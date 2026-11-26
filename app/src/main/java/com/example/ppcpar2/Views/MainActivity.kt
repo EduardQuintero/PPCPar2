@@ -4,13 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.ppcpar2.ViewModels.ViajeViewModel
 import com.example.ppcpar2.ui.theme.PPCPar2Theme
 
 class MainActivity : ComponentActivity() {
@@ -19,28 +19,50 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PPCPar2Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                val navController = rememberNavController()
+                val viewModel: ViajeViewModel = viewModel()
+
+                NavHost(navController = navController, startDestination = "viajes") {
+                    composable("viajes") {
+                        ViajesScreen(
+                            viewModel = viewModel,
+                            onNavigateToCrear = { navController.navigate("crear") },
+                            onNavigateToDetalle = { viajeId -> navController.navigate("miviaje/$viajeId") }
+                        )
+                    }
+                    composable("crear") {
+                        CrearViajeScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onSuccess = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = "miviaje/{viajeId}",
+                        arguments = listOf(navArgument("viajeId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val viajeId = backStackEntry.arguments?.getString("viajeId") ?: ""
+                        MiViajeScreen(
+                            viajeId = viajeId,
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onNavigateToAddLugar = { id -> navController.navigate("agregar/$id") }
+                        )
+                    }
+                    composable(
+                        route = "agregar/{viajeId}",
+                        arguments = listOf(navArgument("viajeId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val viajeId = backStackEntry.arguments?.getString("viajeId") ?: ""
+                        AgregarLugarScreen(
+                            viajeId = viajeId,
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onSuccess = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }
-    }
-}
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PPCPar2Theme {
-        Greeting("Android")
     }
 }

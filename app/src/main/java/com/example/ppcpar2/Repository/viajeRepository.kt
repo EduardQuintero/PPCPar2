@@ -3,6 +3,7 @@ package com.example.ppcpar2.Repository
 import com.example.ppcpar2.Models.Categoria
 import com.example.ppcpar2.Models.Lugar
 import com.example.ppcpar2.Models.Viaje
+import com.google.gson.annotations.SerializedName
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -13,27 +14,29 @@ import java.time.LocalDate
 
 interface ViajeRepository {
     suspend fun obtenerViajes(): Result<List<Viaje>>
-    suspend fun obtenerDetalleViaje(viajeId: Int): Result<Viaje>
+    suspend fun obtenerDetalleViaje(viajeId: String): Result<Viaje>
     suspend fun crearViaje(viaje: Viaje): Result<Viaje>
-    suspend fun agregarLugar(viajeId: Int, lugar: Lugar): Result<Lugar>
+    suspend fun agregarLugar(viajeId: String, lugar: Lugar): Result<Lugar>
     suspend fun obtenerCategorias(): Result<List<Categoria>>
 }
 
 data class CategoriaDto(
     val id: Int,
-    val nombre: String
+    @SerializedName("name") val nombre: String,
+    @SerializedName("description") val descripcion: String = ""
 ) {
     fun toDomain() = Categoria(id = id, nombre = nombre)
 }
 
 data class LugarDto(
-    val id: Int = 0,
-    val viajeId: Int = 0,
-    val nombre: String,
-    val descripcion: String,
-    val ciudad: String,
-    val categoria: CategoriaDto,
-    val fechaTentativa: String
+    val id: String = "",
+    @SerializedName("tripId") val viajeId: String = "",
+    @SerializedName("name") val nombre: String,
+    @SerializedName("description") val descripcion: String,
+    @SerializedName("city") val ciudad: String,
+    @SerializedName("category") val categoria: CategoriaDto? = null,
+    @SerializedName("categoryId") val categoriaId: Int = 0,
+    @SerializedName("tentativeDate") val fechaTentativa: String
 ) {
     fun toDomain() = Lugar(
         id = id,
@@ -41,7 +44,7 @@ data class LugarDto(
         nombre = nombre,
         descripcion = descripcion,
         ciudad = ciudad,
-        categoria = categoria.toDomain(),
+        categoria = categoria?.toDomain() ?: Categoria(id = categoriaId, nombre = ""),
         fechaTentativa = LocalDate.parse(fechaTentativa)
     )
 
@@ -52,19 +55,19 @@ data class LugarDto(
             nombre = lugar.nombre,
             descripcion = lugar.descripcion,
             ciudad = lugar.ciudad,
-            categoria = CategoriaDto(lugar.categoria.id, lugar.categoria.nombre),
+            categoriaId = lugar.categoria.id,
             fechaTentativa = lugar.fechaTentativa.toString()
         )
     }
 }
 
 data class ViajeDto(
-    val id: Int = 0,
-    val nombre: String,
-    val destino: String,
-    val fechaInicio: String,
-    val fechaFin: String,
-    val lugares: List<LugarDto> = emptyList()
+    val id: String = "",
+    @SerializedName("name") val nombre: String,
+    @SerializedName("destination") val destino: String,
+    @SerializedName("startDate") val fechaInicio: String,
+    @SerializedName("endDate") val fechaFin: String,
+    @SerializedName("places") val lugares: List<LugarDto> = emptyList()
 ) {
     fun toDomain() = Viaje(
         id = id,
@@ -88,24 +91,24 @@ data class ViajeDto(
 }
 
 interface ViajesApiService {
-    @GET("viajes")
+    @GET("trips")
     suspend fun getViajes(): List<ViajeDto>
 
-    @GET("viajes/{id}")
-    suspend fun getViajeDetalle(@Path("id") id: Int): ViajeDto
+    @GET("trips/{id}")
+    suspend fun getViajeDetalle(@Path("id") id: String): ViajeDto
 
-    @POST("viajes")
+    @POST("trips")
     suspend fun postViaje(@Body viaje: ViajeDto): ViajeDto
 
-    @POST("viajes/{id}/lugares")
-    suspend fun postLugar(@Path("id") viajeId: Int, @Body lugar: LugarDto): LugarDto
+    @POST("places")
+    suspend fun postLugar(@Body lugar: LugarDto): LugarDto
 
-    @GET("categorias")
+    @GET("categories")
     suspend fun getCategorias(): List<CategoriaDto>
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8000/api/"
 
     val apiService: ViajesApiService by lazy {
         Retrofit.Builder()
@@ -116,7 +119,7 @@ object RetrofitClient {
     }
 }
 
-class viajeRepository(
+class ViajeRepositoryImpl(
     private val apiService: ViajesApiService = RetrofitClient.apiService
 ) : ViajeRepository {
 
@@ -124,7 +127,7 @@ class viajeRepository(
         apiService.getViajes().map { it.toDomain() }
     }
 
-    override suspend fun obtenerDetalleViaje(viajeId: Int): Result<Viaje> = runCatching {
+    override suspend fun obtenerDetalleViaje(viajeId: String): Result<Viaje> = runCatching {
         apiService.getViajeDetalle(viajeId).toDomain()
     }
 
@@ -132,8 +135,8 @@ class viajeRepository(
         apiService.postViaje(ViajeDto.fromDomain(viaje)).toDomain()
     }
 
-    override suspend fun agregarLugar(viajeId: Int, lugar: Lugar): Result<Lugar> = runCatching {
-        apiService.postLugar(viajeId, LugarDto.fromDomain(lugar)).toDomain()
+    override suspend fun agregarLugar(viajeId: String, lugar: Lugar): Result<Lugar> = runCatching {
+        apiService.postLugar(LugarDto.fromDomain(lugar.copy(viajeId = viajeId))).toDomain()
     }
 
     override suspend fun obtenerCategorias(): Result<List<Categoria>> = runCatching {

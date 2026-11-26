@@ -10,7 +10,7 @@ class ObtenerViajesUseCase(private val repository: ViajeRepository) {
 }
 
 class ObtenerDetalleViajeUseCase(private val repository: ViajeRepository) {
-    suspend operator fun invoke(viajeId: Int): Result<Viaje> = repository.obtenerDetalleViaje(viajeId)
+    suspend operator fun invoke(viajeId: String): Result<Viaje> = repository.obtenerDetalleViaje(viajeId)
 }
 
 class ObtenerCategoriasUseCase(private val repository: ViajeRepository) {
@@ -46,7 +46,7 @@ class AgregarLugarUseCase(private val repository: ViajeRepository) {
             return Result.failure(IllegalArgumentException("La ciudad del lugar es obligatoria."))
         }
         if (lugar.categoria.nombre.isBlank()) {
-            return Result.failure(IllegalArgumentException("Debe seleccionar una categoría."))
+            return Result.failure(IllegalArgumentException("Debe seleccionaruna categoría."))
         }
         val fueraDeRango = lugar.fechaTentativa.isBefore(viaje.fechaInicio) ||
                 lugar.fechaTentativa.isAfter(viaje.fechaFin)
